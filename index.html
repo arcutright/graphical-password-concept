@@ -70,7 +70,8 @@
 				area.onclick = function(){
 					selectregion.html('region   x:'+parseFloat(this.style.left)/errorMargin+
 						'  y: '+parseFloat(this.style.top)/errorMargin);
-					changeImage($('#canvas img')[0], this);
+					changeImage($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
+						parseFloat(this.style.top)/errorMargin);
 				};
 				clickmap.appendChild(area);
 			}
@@ -79,25 +80,29 @@
 	});
 
 	/* chain to provide server with info about prev images, hopefully encrypted */
-	var dataChain;
+	var dataChain = '';
 
 	// change image based on user response
 	function changeImage(img, gridX, gridY){
-		dataChain = [dataChain, $(img).serialize()];
-		var postData = [dataChain, [gridX, gridY]];
+		var postData = [dataChain, img.src, [gridX, gridY]];
+		postData = JSON.stringify(postData);
+		// post to server
 		$.ajax({
 			type: 'POST',
 			url: "/changeImage.php",
-			data: 'postData=' + $(postData).serialize(),
+			data: 'postData=' + postData,
 			dataType: "html",
 			cache: false,
 			contentTyoe: false,
 			processData: false,
 			success: function(responseData, textStatus, jqXHR) {
-				//data verification
+				responseData = JSON.parse(responseData);
+				// response validation
 				if(responseData.constructor === Array && responseData.length == 2){
 					var responseChain = responseData[0];
 					var responseImageURL = responseData[1];
+					console.log('responseChain: ['+ responseChain +']');
+					console.log('responseURL: ['+ responseImageURL +']');
 					if(imageExists(responseImageURL)){
 						//response is valid
 						img.src = responseImageURL;
