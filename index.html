@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+	<style>
+	#canvas, #canvas img{
+		width: 500px;
+		height: 300px;
+	}
+	#canvas{
+		position:relative;
+	}
+	#canvas img{
+		position: absolute;
+		left: 0;
+		top: 0;
+	}
+	.selection-area{
+	  position: absolute;
+	  outline-color: red;
+	}
+	</style>
+	</head>
+	<body>
+		<div id='canvas'>
+			<img src='https://i.imgur.com/aVh7NEH.jpg'>
+		</div>
+		<p id='mouselocation'></p>
+		<p id='selectregion'></p>
+	</body>
+	<!-- external script dependencies -->
+	<script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
+
+	<script type='text/javascript'>
+	// selector caching
+	var canvas = $('#canvas');
+	var mouselocation = $('#mouselocation');
+	var selectregion = $('#selectregion');
+
+	$(document).ready( function(){
+		// capture mouse movement
+		canvas.mousemove( function(e){
+			var x = e.pageX - canvas.offset().left;
+			var y = e.pageY - canvas.offset().top;
+			mouselocation.html('mouse location   x: '+x + '   y: '+y);
+		});
+
+		// define grid for mouse clicks
+		var clickmap = document.createElement('div');
+		clickmap.id = 'clickmap';
+		var errorMargin = 50;
+
+		for(var y=0; y < canvas.height(); y += errorMargin){
+			for(var x=0; x < canvas.width(); x += errorMargin){
+				// area: each cell in the grid
+				var area = document.createElement('div');
+				area.className = 'selection-area';
+				area.style.left = x + 'px';
+				area.style.top = y + 'px';
+				area.style.width = errorMargin + 'px';
+				area.style.height = errorMargin + 'px';
+				area.onmouseover = function(){
+					this.style.outlineStyle = 'solid';
+				};
+				area.onmouseout = function(){
+					this.style.outlineStyle = 'none';
+				};
+				area.onclick = function(){
+					selectregion.html('region   x:'+parseFloat(this.style.left)/errorMargin+
+						'  y: '+parseFloat(this.style.top)/errorMargin);
+					changeImage(img, this);
+				};
+				clickmap.appendChild(area);
+			}
+		}
+		canvas[0].appendChild(clickmap);
+	});
+
+	/* chain to provide server with info about prev images, hopefully encrypted */
+	var dataChain;
+
+	// change image based on user response
+	function changeImage(img, gridX, gridY){
+		var postData = [dataChain, [gridX, gridY]];
+		$.ajax({
+			type: 'POST',
+			url: "changeImage.php?action=changeImage",
+			data: $(postData).serialize(),
+			dataType: "text",
+			cache: false,
+			contentTyoe: false,
+			processData: false,
+			success: function(responseData, textStatus, jqXHR) {
+				//data verification
+				if(responseData.constructor === Array && responseData.length == 2){
+					var responseChain = responseData[0];
+					var responseImageURL = responseData[1];
+					if(imageExists(responseImageURL)){
+						//response is valid
+						img.src = responseImageURL;
+						dataChain = responseChain;
+					}
+				}
+			},
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log(textStatus, errorThrown);
+			}
+		});
+	}
+
+	// verify image existance
+	function imageExists(src) {
+		if(typeof src === 'string' && src.length > 0){
+			var img = new Image();
+			img.src = encodeURIComponent(src);
+			if(img.complete)
+				return true;
+		}
+		return false;
+	}
+	</script>
+</html>
