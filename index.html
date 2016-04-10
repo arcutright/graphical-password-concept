@@ -69,13 +69,15 @@
 					if(typeof responseData === 'string' && responseData.length > 0){
 						var initialImageURL = responseData;
 						if(imageExists(initialImageURL)){
-							$('#canvas img')[0].src = initialImageURL;
-							$('#canvas').show();
+							var img = $('#canvas img')[0]
+							img.src = initialImageURL;
+							img.onload = function(){ $('#canvas').show(); };
 							mouseEntropy = '';
 						}
 					}
 				},
 				error: function(jqXHR, textStatus, errorThrown) {
+					console.log('initial login fail');
 					console.log(textStatus, errorThrown);
 				}
 			});
@@ -156,6 +158,7 @@
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
+				console.log('changeimage fail');
 				console.log(textStatus, errorThrown);
 			}
 		});
@@ -181,6 +184,7 @@
 				return true;
 			},
 			fail: function(jqXHR, textStatus, errorThrown) {
+				console.log('authenticated login fail');
 				console.log(textStatus, errorThrown);
 			}
 		});
