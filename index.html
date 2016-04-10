@@ -24,8 +24,13 @@
 	</style>
 	</head>
 	<body>
-		<div id='canvas'>
-			<img src='https://i.imgur.com/aVh7NEH.jpg'>
+		<form id='login' method='post' accept-charset='UTF-8'>
+			Username:<br>
+  			<input type="text" name="username"><br>
+  			<input type="submit" value="Password">
+		</form>
+		<div id='canvas' style='display:none'>
+			<img src='/imagenotfound.jpg'>
 		</div>
 		<p id='mouselocation'></p>
 		<p id='selectregion'></p>
@@ -40,10 +45,48 @@
 	var selectregion = $('#selectregion');
 
 	$(document).ready( function(){
+		// get chunk directory, get starting image
+		var username;
+
+		$('#login').on('submit', function(e){
+			e.preventDefault();
+			$('#canvas').hide();
+			username = $('input[name="username"]', this)[0].value;
+			console.log('username: "'+username+'"');
+
+			var postData = [username, mouseEntropy];
+			postData = JSON.stringify(postData);
+
+			var request = $.ajax({
+				url: '/changeImage.php',
+				type: 'post',
+				data: 'login='+postData,
+				success: function(responseData, textStatus, jqXHR){
+					console.log('raw response:');
+					console.log(responseData);
+					responseData = JSON.parse(responseData);
+					// response validation
+					if(typeof responseData === 'string' && responseData.length > 0){
+						var initialImageURL = responseData;
+						if(imageExists(initialImageURL)){
+							$('#canvas img')[0].src = initialImageURL;
+							$('#canvas').show();
+							mouseEntropy = '';
+						}
+					}
+				},
+				error: function(jqXHR, textStatus, errorThrown) {
+					console.log(textStatus, errorThrown);
+				}
+			});
+		});
+
 		// capture mouse movement
-		canvas.mousemove( function(e){
-			var x = e.pageX - canvas.offset().left;
-			var y = e.pageY - canvas.offset().top;
+		var mouseEntropy = '';
+		$(document).mousemove( function(e){
+			var x = e.pageX;
+			var y = e.pageY;
+			mouseEntropy += x + y;
 			mouselocation.html('mouse location   x: '+x + '   y: '+y);
 		});
 
@@ -79,8 +122,10 @@
 		canvas[0].appendChild(clickmap);
 	});
 
-	/* chain to provide server with info about prev images, hopefully encrypted */
+	// chain to provide server with info about prev images, hopefully encrypted
 	var dataChain = '';
+	// chunk to retrieve images from
+	var chunk;
 
 	// change image based on user response
 	function changeImage(img, gridX, gridY){
@@ -90,7 +135,7 @@
 		$.ajax({
 			type: 'POST',
 			url: "/changeImage.php",
-			data: 'postData=' + postData,
+			data: 'changeImage=' + postData,
 			dataType: "html",
 			cache: false,
 			contentTyoe: false,
@@ -116,13 +161,39 @@
 		});
 	}
 
-	// verify image existance
-	function imageExists(src) {
-		if(typeof src === 'string' && src.length > 0){
-			var img = new Image();
-			img.src = encodeURIComponent(src);
-			if(img.complete)
+	function checkLogin(username, dataChain){
+		var postData = [username, dataChain];
+		postData = JSON.stringify(postData);
+		// post to server
+		$.ajax({
+			type: 'POST',
+			url: "/changeImage.php",
+			data: 'checkLogin=' + postData,
+			dataType: "html",
+			cache: false,
+			contentTyoe: false,
+			processData: false,
+			done: function(responseData, textStatus, jqXHR) {
+				responseData = JSON.parse(responseData);
+				// response validation
+				console.log('login response:');
+				console.log(responseData);
 				return true;
+			},
+			fail: function(jqXHR, textStatus, errorThrown) {
+				console.log(textStatus, errorThrown);
+			}
+		});
+		return false;
+	}
+
+	// verify image existance
+	function imageExists(url) {
+		if(typeof url === 'string' && url.length > 0){
+			var http = new XMLHttpRequest();
+		    http.open('HEAD', url, false);
+		    http.send();
+		    return http.status != 404;
 		}
 		return false;
 	}
