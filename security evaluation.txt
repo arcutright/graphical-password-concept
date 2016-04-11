@@ -1,0 +1,17 @@
+
+typical password charset: {a-Z, 0-9, !, @, #, $, *, &, ()}
+typical password possibilites:
+	6 characters:  2^36.78
+	8 characters:  2^49.03
+	10 characters: 2^61.29
+
+our system's entropy: number of chunks, number of grid positions, number of images
+	let's say: 100 chunks, 1000 images per chunk, 5 images chosen in a password, 1000 possible grid positions
+
+	# of possible sets of 5 images in chunk: (1000 p 5) = 2^49.81
+	# of possible sets of 5 image positions chosen: 1000 grid positions ^ 5 images = 2^49.83
+	100 chunk choices * 2^49.83 * 2^49.81 = 2^106.29
+
+
+	roughly equivalent to the number of possible passwords of 17 chars
+		(26+26+10+8)^17 = 2^104.20
