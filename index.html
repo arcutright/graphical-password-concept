@@ -45,19 +45,23 @@
 
 	<script type='text/javascript'>
 	// selector caching
-	var canvas = $('#canvas');
-	var password = $('#password');
+	var $canvas = $('#canvas');
+	var $img = $('img', canvas);
+	var $password = $('#password');
+	var $passwordContainer = $('#password-result-div');
+	var $numImages = $('#numImages');
+	var $numImagesContainer = $('#numImagesContainer');
 
 	$(document).ready( function(){
-		// get chunk directory, get starting image
+		
 		var username;
-
+		// get initial image
 		$('#login').on('submit', function(e){
 			e.preventDefault();
-			$('#canvas').hide();
-			username = $('#login input[name="username"]')[0].value;
+			$canvas.hide();
+			username = $('input[name="username"]', this)[0].value;
 			numImages = 0;
-			$('#numImages').html(numImages);
+			$numImages.html(numImages);
 			var postData = [username];
 			postData = JSON.stringify(postData);
 
@@ -75,14 +79,13 @@
 						testimg.onload = function(){
 							numImages = 0;
 							dataChain = '';
-							$('#numImages').html(numImages+1);
-							$('#password-result-div').hide();
-							$('#password').html('');
-							var img = $('#canvas img')[0];
-							img.src = initialImageURL;
-							img.onload = function(){ 
-								$('#canvas').show(); 
-								$('#numImagesContainer').show(); 
+							$numImages.html(numImages+1);
+							$password.html('');
+							$passwordContainer.hide();
+							$img[0].src = initialImageURL;
+							$img[0].onload = function(){ 
+								$canvas.show(); 
+								$numImagesContainer.show(); 
 							};
 						};
 						
@@ -100,8 +103,8 @@
 		clickmap.id = 'clickmap';
 		var errorMargin = 50;
 
-		for(var y=0; y < canvas.height(); y += errorMargin){
-			for(var x=0; x < canvas.width(); x += errorMargin){
+		for(var y=0; y < $canvas.height(); y += errorMargin){
+			for(var x=0; x < $canvas.width(); x += errorMargin){
 				// area: each cell in the grid
 				var area = document.createElement('div');
 				area.className = 'selection-area';
@@ -117,29 +120,29 @@
 				};
 				area.onclick = function(){
 					if(numImages < 4){
-						changeImage($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
+						changeImage(parseFloat(this.style.left)/errorMargin,
 							parseFloat(this.style.top)/errorMargin);
 					}
 					else{
-						checkLogin($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
+						checkLogin(parseFloat(this.style.left)/errorMargin,
 							parseFloat(this.style.top)/errorMargin);
 					}
 				};
 				clickmap.appendChild(area);
 			}
 		}
-		canvas[0].appendChild(clickmap);
+		$canvas[0].appendChild(clickmap);
 	});
 
-	// chain to provide server with info about prev images, hopefully encrypted
+	// chain to provide server with info about prev images, encrypted
 	var dataChain;
 	// chunk to retrieve images from
 	var chunk;
 	var numImages;
 
 	// change image based on user response
-	function changeImage(img, gridX, gridY){
-		var postData = [dataChain, img.src, [gridX, gridY]];
+	function changeImage(gridX, gridY){
+		var postData = [dataChain, $img[0].src, [gridX, gridY]];
 		postData = JSON.stringify(postData);
 		// post to server
 		$.ajax({
@@ -161,9 +164,9 @@
 					imgtest.onload = function(){
 						//response is valid
 						dataChain = responseChain;
-						img.src = responseImageURL;
+						$img[0].src = responseImageURL;
 						numImages++;
-						$('#numImages').html(numImages+1);
+						$numImages.html(numImages+1);
 					};
 				}
 			},
@@ -174,9 +177,9 @@
 		});
 	}
 
-	function checkLogin(img, gridX, gridY){
+	function checkLogin(gridX, gridY){
 		var username = $('#login input[name="username"]')[0].value;
-		var postData = [dataChain, img.src, [gridX, gridY], username];
+		var postData = [dataChain, $img[0].src, [gridX, gridY], username];
 		postData = JSON.stringify(postData);
 		// post to server
 		$.ajax({
@@ -189,11 +192,11 @@
 			processData: false,
 			success: function(responseData, textStatus, jqXHR) {
 				responseData = JSON.parse(responseData);
-				password.html(responseData);
+				$password.html(responseData);
+				$passwordContainer.show();
 				numImages = 0;
-				$('#numImagesContainer').hide();
-				$('#canvas').hide();
-				$('#password-result-div').show();
+				$numImagesContainer.hide();
+				$canvas.hide();
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
 				console.log('check login fail');
