@@ -1,6 +1,8 @@
 <?php
+	// show errors
+	error_reporting(E_ALL);
+	ini_set('display_errors', 1);
 
-	$chunkSize = 100; // images per chunk (ideally at least gridX*gridY)
 	$chunksDir = 'chunks';
 
 	if(isset($_POST['login'])){
@@ -11,11 +13,12 @@
 			$mouseEntropy = $raw[1];
 			// lookup starting image in database
 			$imageChunkDirectory = ''; // obviously, replace me
-			$initialImage = 'chunks/chunk1/aVh7NEH.jpg';
+			$initialImage = 'chunks/chunk1/wallpaper5.jpg';
 			// $initialImage = database_fetch($username, 'image');
 			// if unavailable (user not in database)
 			/* obviously, this code is for testing ONLY. 
 			   if user is not in database, return empty
+			   (use some other POST for creating accounts)
 			// select chunk
 			$dir = $_SERVER['DOCUMENT_ROOT'].'/'.$chunksDir;
 			$index = $mouseEntropy % numDirs($dir);
@@ -34,14 +37,27 @@
 		// verify posted data is well-formed
 		if((array)$raw === $raw && sizeof($raw) == 3){
 			$dataChainIn = $raw[0];
-			$currentImageURL = $raw[1];
+			$currentImageURL = urldecode($raw[1]);
 			$chosenGridPosition = $raw[2];
+			// get substring after the http://.../
+			$index = strpos($currentImageURL, '//');
+			$index = strpos($currentImageURL, '/', $index+2);
+			$currentImageURL = substr($currentImageURL, $index+1);
+			// initialize variables
+			$dataChainOut = '?';
+			$nextImageURL = '?';
 			// verify current image
 			if(imageExists($currentImageURL)){
 				$chunk = dirname($currentImageURL);
-				// calculate next image, add to chain (+encrypt?)
-				$dataChainOut = '?';
-				$nextImageURL = '?';
+				// calculate next image, add to chain (+encrypt)
+				$dataChainOut  = hash('sha256', $dataChainIn.$currentImageURL.implode('',$chosenGridPosition));
+				global $chunkSize;
+				if($nextImageURL = glob($chunk.'/*.*')){
+					$index = abs(hexdec(substr($dataChainOut, 0, 16)) % sizeof($nextImageURL));
+					$nextImageURL = $nextImageURL[$index];
+				}
+				else
+					header("HTTP/1.0 500 Internal Server Error");
 			}
 			else
 				header("HTTP/1.0 500 Internal Server Error");
@@ -51,20 +67,36 @@
 		clearstatcache();
 	}
 
+	// obviously, modified for demo purposes
 	if(isset($_POST['checkLogin'])){
 		$raw = json_decode($_POST['checkLogin']);
 		// verify posted data is well-formed
-		if((array)$raw === $raw && sizeof($raw) == 2){
-			$username = $raw[0];
-			$dataChain = $raw[1];
-			// verify username/datachain
-			// if(check_database($username, $dataChain))
-			echo json_encode('login success');
-			//else echo json_encode('login fail');
+		if((array)$raw === $raw && sizeof($raw) == 4){
+			$dataChainIn = $raw[0];
+			$currentImageURL = urldecode($raw[1]);
+			$chosenGridPosition = $raw[2];
+			$username = $raw[3];
+			// get substring after the http://.../
+			$index = strpos($currentImageURL, '//');
+			$index = strpos($currentImageURL, '/', $index+2);
+			$currentImageURL = substr($currentImageURL, $index+1);
+			// initialize variables
+			$dataChainOut = '?';
+			// verify current image
+			if(imageExists($currentImageURL)){
+				$chunk = dirname($currentImageURL);
+				// calculate next image, add to chain (+encrypt)
+				$dataChainOut = hash('sha256', $dataChainIn.$currentImageURL.implode('',$chosenGridPosition));
+				// this is where we would look up username,password in database
+				// for demo though, it will just echo out the final username,password
+			}
+			else
+				header("HTTP/1.0 500 Internal Server Error");
+			// this is for demo purposes only (otherwise it would authenticate the user)
+			echo json_encode($dataChainOut);
 		}
 		clearstatcache();
 	}
-
 
 	function urlExists($url){
 		$headers = get_headers($url);
@@ -72,7 +104,7 @@
 	}
 
 	function imageExists($url){
-		return is_file($url);
+		return file_exists($url);
 	}
 
 	function numFiles($dir){

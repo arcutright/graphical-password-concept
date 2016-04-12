@@ -24,16 +24,21 @@
 	</style>
 	</head>
 	<body>
-		<form id='login' method='post' accept-charset='UTF-8'>
+		<form id='login' method='post' accept-charset='UTF-8' autocomplete='off' readonly 
+			onfocus='this.removeAttribute("readonly");' onkeyup='$("#canvas").hide()'>
 			Username:<br>
   			<input type="text" name="username"><br>
-  			<input type="submit" value="Password">
+  			<input type="submit" value="Enter Password">
 		</form>
+		<div id='numImagesContainer' style='display:none'>
+			Image <p id='numImages' style='display:inline'></p> of 5<br/>
+		</div>
 		<div id='canvas' style='display:none'>
 			<img src='/imagenotfound.jpg'>
 		</div>
-		<p id='mouselocation'></p>
-		<p id='selectregion'></p>
+		<div id='password-result-div' style='display:none;'>
+		Password result: <p id='password'></p>
+		</div>
 	</body>
 	<!-- external script dependencies -->
 	<script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
@@ -41,8 +46,7 @@
 	<script type='text/javascript'>
 	// selector caching
 	var canvas = $('#canvas');
-	var mouselocation = $('#mouselocation');
-	var selectregion = $('#selectregion');
+	var password = $('#password');
 
 	$(document).ready( function(){
 		// get chunk directory, get starting image
@@ -52,8 +56,8 @@
 			e.preventDefault();
 			$('#canvas').hide();
 			username = $('input[name="username"]', this)[0].value;
-			console.log('username: "'+username+'"');
-
+			numImages = 0;
+			$('#numImages').html(numImages);
 			var postData = [username, mouseEntropy];
 			postData = JSON.stringify(postData);
 
@@ -62,18 +66,27 @@
 				type: 'post',
 				data: 'login='+postData,
 				success: function(responseData, textStatus, jqXHR){
-					console.log('raw response:');
-					console.log(responseData);
 					responseData = JSON.parse(responseData);
 					// response validation
 					if(typeof responseData === 'string' && responseData.length > 0){
 						var initialImageURL = responseData;
-						if(imageExists(initialImageURL)){
-							var img = $('#canvas img')[0]
+						var testimg = new Image();
+						testimg.src = initialImageURL;
+						testimg.onload = function(){
+							numImages = 0;
+							dataChain = '';
+							$('#numImages').html(numImages+1);
+							$('#password-result-div').hide();
+							$('#password').html('');
+							var img = $('#canvas img')[0];
 							img.src = initialImageURL;
-							img.onload = function(){ $('#canvas').show(); };
-							mouseEntropy = '';
-						}
+							img.onload = function(){ 
+								$('#canvas').show(); 
+								$('#numImagesContainer').show(); 
+								mouseEntropy = '';
+							};
+						};
+						
 					}
 				},
 				error: function(jqXHR, textStatus, errorThrown) {
@@ -89,7 +102,6 @@
 			var x = e.pageX;
 			var y = e.pageY;
 			mouseEntropy += x + y;
-			mouselocation.html('mouse location   x: '+x + '   y: '+y);
 		});
 
 		// define grid for mouse clicks
@@ -113,10 +125,14 @@
 					this.style.outlineStyle = 'none';
 				};
 				area.onclick = function(){
-					selectregion.html('region   x:'+parseFloat(this.style.left)/errorMargin+
-						'  y: '+parseFloat(this.style.top)/errorMargin);
-					changeImage($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
-						parseFloat(this.style.top)/errorMargin);
+					if(numImages < 4){
+						changeImage($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
+							parseFloat(this.style.top)/errorMargin);
+					}
+					else{
+						checkLogin($('#canvas img')[0], parseFloat(this.style.left)/errorMargin,
+							parseFloat(this.style.top)/errorMargin);
+					}
 				};
 				clickmap.appendChild(area);
 			}
@@ -125,9 +141,10 @@
 	});
 
 	// chain to provide server with info about prev images, hopefully encrypted
-	var dataChain = '';
+	var dataChain;
 	// chunk to retrieve images from
 	var chunk;
+	var numImages;
 
 	// change image based on user response
 	function changeImage(img, gridX, gridY){
@@ -148,13 +165,15 @@
 				if(responseData.constructor === Array && responseData.length == 2){
 					var responseChain = responseData[0];
 					var responseImageURL = responseData[1];
-					console.log('responseChain: ['+ responseChain +']');
-					console.log('responseURL: ['+ responseImageURL +']');
-					if(imageExists(responseImageURL)){
+					var imgtest = new Image();
+					imgtest.src = responseImageURL;
+					imgtest.onload = function(){
 						//response is valid
-						img.src = responseImageURL;
 						dataChain = responseChain;
-					}
+						img.src = responseImageURL;
+						numImages++;
+						$('#numImages').html(numImages+1);
+					};
 				}
 			},
 			error: function(jqXHR, textStatus, errorThrown) {
@@ -164,8 +183,9 @@
 		});
 	}
 
-	function checkLogin(username, dataChain){
-		var postData = [username, dataChain];
+	function checkLogin(img, gridX, gridY){
+		var username = $('#login input[name="username"]')[0].value;
+		var postData = [dataChain, img.src, [gridX, gridY], username];
 		postData = JSON.stringify(postData);
 		// post to server
 		$.ajax({
@@ -176,30 +196,19 @@
 			cache: false,
 			contentTyoe: false,
 			processData: false,
-			done: function(responseData, textStatus, jqXHR) {
+			success: function(responseData, textStatus, jqXHR) {
 				responseData = JSON.parse(responseData);
-				// response validation
-				console.log('login response:');
-				console.log(responseData);
-				return true;
+				password.html(responseData);
+				numImages = 0;
+				$('#numImagesContainer').hide();
+				$('#canvas').hide();
+				$('#password-result-div').show();
 			},
-			fail: function(jqXHR, textStatus, errorThrown) {
-				console.log('authenticated login fail');
+			error: function(jqXHR, textStatus, errorThrown) {
+				console.log('check login fail');
 				console.log(textStatus, errorThrown);
 			}
 		});
-		return false;
-	}
-
-	// verify image existance
-	function imageExists(url) {
-		if(typeof url === 'string' && url.length > 0){
-			var http = new XMLHttpRequest();
-		    http.open('HEAD', url, false);
-		    http.send();
-		    return http.status != 404;
-		}
-		return false;
 	}
 	</script>
 </html>

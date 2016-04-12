@@ -6,12 +6,25 @@ typical password possibilites:
 	10 characters: 2^61.29
 
 our system's entropy: number of chunks, number of grid positions, number of images
-	let's say: 100 chunks, 1000 images per chunk, 5 images chosen in a password, 1000 possible grid positions
+	let's say: 10 chunks, 1000 images per chunk, 5 images chosen in a password, 100 possible grid positions
 
-	# of possible sets of 5 images in chunk: (1000 p 5) = 2^49.81
-	# of possible sets of 5 image positions chosen: 1000 grid positions ^ 5 images = 2^49.83
-	100 chunk choices * 2^49.83 * 2^49.81 = 2^106.29
+	# of possible sets of 5 images in chunk: 1000^5 = 2^49.83
+	# of possible sets of 5 image positions chosen: 100 grid positions ^ 5 images = 2^33.22
+	1000^5 * 100^5 = 2^83.05
 
+	roughly equivalent to the number of possible passwords of 13 chars
+	(26+26+10+8)^13 = 2^79.68
 
-	roughly equivalent to the number of possible passwords of 17 chars
-		(26+26+10+8)^17 = 2^104.20
+	adding one more image to the chain... 13 -> 16 chars
+	1000^6 * 100^6  = 2^99.66
+	(26+26+10+8)^16 = 2^98.07
+
+	realistically, it is not hard to find 100k+ images (http://www.vision.ee.ethz.ch/datasets_extra/food-101/,
+		(https://www.cs.utexas.edu/~grauman/courses/spring2008/datasets.htm, etc)
+	100x pool of images per chunk... 13 -> 19 chars
+	100000^5 * 100^5 = 2^116.27
+	(26+26+10+8)^19  = 2^116.46
+
+	using our actual implementation
+	(10*6)^5 grid * (100)^5 image pool = 2^62.75
+	(26+26+10+8)^10 = 2^61.29
