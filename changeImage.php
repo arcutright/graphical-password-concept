@@ -3,30 +3,14 @@
 	error_reporting(E_ALL);
 	ini_set('display_errors', 1);
 
-	$chunksDir = 'chunks';
-
 	if(isset($_POST['login'])){
 		$raw = json_decode($_POST['login']);
 		// verify post is well-formed
-		if((array)$raw === $raw && sizeof($raw) == 2){
+		if((array)$raw === $raw && sizeof($raw) == 1){
 			$username = $raw[0];
-			$mouseEntropy = $raw[1];
-			// lookup starting image in database
-			$imageChunkDirectory = ''; // obviously, replace me
-			$initialImage = 'chunks/chunk1/wallpaper5.jpg';
-			// $initialImage = database_fetch($username, 'image');
-			// if unavailable (user not in database)
-			/* obviously, this code is for testing ONLY. 
-			   if user is not in database, return empty
-			   (use some other POST for creating accounts)
-			// select chunk
-			$dir = $_SERVER['DOCUMENT_ROOT'].'/'.$chunksDir;
-			$index = $mouseEntropy % numDirs($dir);
-			$imageChunkDirectory = glob($dir.'/*.*')[$index];
-			// select image
-			$initialImage = rand_array(glob($imageChunkDirectory));
-			database_store($username, 'image', $image);
-			*/
+			$imgArray = glob('chunks/chunk1/*.*');
+			$index = abs(hexdec(substr(hash('crc32', $username), 0, 16)) % sizeof($imgArray));
+			$initialImage = $imgArray[$index];
 			echo json_encode($initialImage);
 		}
 		clearstatcache();
@@ -46,18 +30,23 @@
 			// initialize variables
 			$dataChainOut = '?';
 			$nextImageURL = '?';
+			$chunk = dirname($currentImageURL);
+			$imgArray = [];
 			// verify current image
-			if(imageExists($currentImageURL)){
-				$chunk = dirname($currentImageURL);
-				// calculate next image, add to chain (+encrypt)
+			if(imageExists($currentImageURL) && $imgArray = glob($chunk.'/*.*')){
+				// add to chain (+encrypt)
 				$dataChainOut  = hash('sha256', $dataChainIn.$currentImageURL.implode('',$chosenGridPosition));
-				global $chunkSize;
-				if($nextImageURL = glob($chunk.'/*.*')){
-					$index = abs(hexdec(substr($dataChainOut, 0, 16)) % sizeof($nextImageURL));
-					$nextImageURL = $nextImageURL[$index];
+				// calculate next image
+				$index = abs(hexdec(substr($dataChainOut, 5, 16)) % sizeof($imgArray));
+				$nextImageURL = $imgArray[$index];
+				// prevent immediate duplicates (avoid potential confusion)
+				$deterministicAdjustment = sizeof($imgArray)/4;
+				while($nextImageURL == $currentImageURL){
+					$index = abs(hexdec(substr($dataChainOut, 5, 16) + $deterministicAdjustment) 
+						% sizeof($imgArray));
+					$nextImageURL = $imgArray[$index];
+					$deterministicAdjustment += 1;
 				}
-				else
-					header("HTTP/1.0 500 Internal Server Error");
 			}
 			else
 				header("HTTP/1.0 500 Internal Server Error");
@@ -98,42 +87,7 @@
 		clearstatcache();
 	}
 
-	function urlExists($url){
-		$headers = get_headers($url);
-		return stripos($headers[0],"200 OK") ? true : false;
-	}
-
 	function imageExists($url){
 		return file_exists($url);
-	}
-
-	function numFiles($dir){
-		if(is_dir($dir) && $handle = opendir($dir)){
-			$numfiles = 0;
-		    while ($entry = readdir($handle)){
-		        if ($entry != "." && $entry != ".."){
-		            if (!is_dir($entry))
-		                $numfiles++;
-		        }
-		    }
-		    closedir($handle);
-		    return $numfiles;
-		}
-		return 0;
-	}
-
-	function numDirs($dir){
-		if(is_dir($dir) && $handle = opendir($dir)){
-			$numdirs = 0;
-		    while ($entry = readdir($handle)){
-		        if ($entry != "." && $entry != ".."){
-		            if (is_dir($entry))
-		                $numdirs++;
-		        }
-		    }
-		    closedir($handle);
-		    return $numdirs;
-		}
-		return 0;
 	}
 ?>

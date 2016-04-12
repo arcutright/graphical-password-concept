@@ -1,0 +1,3 @@
+ccp diagram: p362, "Graphical Password Authentication Using Cued Click Points" (Chiasson, Oorschot, Biddle) in the book "Computer Security - ESORICS 2007", springer publishing
+
+

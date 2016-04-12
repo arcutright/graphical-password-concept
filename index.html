@@ -55,10 +55,10 @@
 		$('#login').on('submit', function(e){
 			e.preventDefault();
 			$('#canvas').hide();
-			username = $('input[name="username"]', this)[0].value;
+			username = $('#login input[name="username"]')[0].value;
 			numImages = 0;
 			$('#numImages').html(numImages);
-			var postData = [username, mouseEntropy];
+			var postData = [username];
 			postData = JSON.stringify(postData);
 
 			var request = $.ajax({
@@ -83,7 +83,6 @@
 							img.onload = function(){ 
 								$('#canvas').show(); 
 								$('#numImagesContainer').show(); 
-								mouseEntropy = '';
 							};
 						};
 						
@@ -94,14 +93,6 @@
 					console.log(textStatus, errorThrown);
 				}
 			});
-		});
-
-		// capture mouse movement
-		var mouseEntropy = '';
-		$(document).mousemove( function(e){
-			var x = e.pageX;
-			var y = e.pageY;
-			mouseEntropy += x + y;
 		});
 
 		// define grid for mouse clicks

@@ -28,3 +28,13 @@ our system's entropy: number of chunks, number of grid positions, number of imag
 	using our actual implementation
 	(10*6)^5 grid * (100)^5 image pool = 2^62.75
 	(26+26+10+8)^10 = 2^61.29
+
+
+
+
+	or is it simply
+	(10*6 grid)^5 clicks = 2^29.5 
+	(26+26+10+8)^5 = 2^30.64
+	since username->initial image
+	and click->next image
+	as suggested in "Graphical Password Authentication Using Cued Click Points"
