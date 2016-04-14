@@ -34,8 +34,8 @@ fairly unique to users, a user can easily tell if they entered their username co
 Each of the following images (5 total) are found via the "changeImage" POST which uses the
 dataChain, click position, and image to determine which image to serve next and then echoes
 back an updated dataChain. The images sent and received are verified to exist (and in js
-it is verified that they can be loaded as images) and the image will not change (neither
-will the password) if it is invalid for some reason but you can effectively "try again" 
+it is verified that they can be loaded as images) and if the image is not validated, the
+image in html will not change (neither will the password) but you can effectively "try again" 
 to enter that part of the chain. This is a case that wasn't really considered beyond its 
 possibility to exist, so this program would probably not handle attacks well.
 
