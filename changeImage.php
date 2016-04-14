@@ -1,17 +1,21 @@
 <?php
+	// user is requesting initial image
 	if(isset($_POST['login'])){
 		$raw = json_decode($_POST['login']);
 		// verify post is well-formed
 		if((array)$raw === $raw && sizeof($raw) == 1){
 			$username = $raw[0];
+			// use username to determine first image
 			$imgArray = glob('chunks/chunk1/*.*');
 			$index = abs(hexdec(substr(hash('crc32', $username), 0, 16)) % sizeof($imgArray));
 			$initialImage = $imgArray[$index];
+			// echo out image url
 			echo json_encode($initialImage);
 		}
 		clearstatcache();
 	}
 
+	// user is requesting the next image
 	if(isset($_POST['changeImage'])){
 		$raw = json_decode($_POST['changeImage']);
 		// verify posted data is well-formed
@@ -38,6 +42,8 @@
 				// prevent immediate duplicates (avoid potential confusion)
 				$deterministicAdjustment = sizeof($imgArray)/4;
 				while($nextImageURL == $currentImageURL){
+					// adjust by a fixed amount so that passwords are generated the same
+					// way every time (otherwise, the password can't authenticate)
 					$index = abs(hexdec(substr($dataChainOut, 5, 16) + $deterministicAdjustment) 
 						% sizeof($imgArray));
 					$nextImageURL = $imgArray[$index];
@@ -52,6 +58,7 @@
 		clearstatcache();
 	}
 
+	// user is requesting final authentication (sending final click point)
 	// obviously, modified for demo purposes
 	if(isset($_POST['checkLogin'])){
 		$raw = json_decode($_POST['checkLogin']);
@@ -73,7 +80,7 @@
 				// calculate next image, add to chain (+encrypt)
 				$dataChainOut = hash('sha256', $dataChainIn.$currentImageURL.implode('',$chosenGridPosition));
 				// this is where we would look up username,password in database
-				// for demo though, it will just echo out the final username,password
+				// for demo though, it will just echo out the final password
 			}
 			else
 				header("HTTP/1.0 500 Internal Server Error");
@@ -83,6 +90,9 @@
 		clearstatcache();
 	}
 
+	// ideally, this would ensure the url pointed to an image
+	// and not just a file on the server, but we found this
+	// to be more complicated than it was worth
 	function imageExists($url){
 		return file_exists($url);
 	}

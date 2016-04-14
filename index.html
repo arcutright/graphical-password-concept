@@ -24,6 +24,7 @@
 	</style>
 	</head>
 	<body>
+		<!-- username prompt -->
 		<form id='login' method='post' accept-charset='UTF-8' autocomplete='off' readonly 
 			onfocus='this.removeAttribute("readonly");' onkeyup='$("#canvas").hide()'>
 			Username:<br>
@@ -33,9 +34,11 @@
 		<div id='numImagesContainer' style='display:none'>
 			Image <p id='numImages' style='display:inline'></p> of 5<br/>
 		</div>
+		<!-- images used for graphical password -->
 		<div id='canvas' style='display:none'>
 			<img src='/imagenotfound.jpg'>
 		</div>
+		<!-- resulting password after generation -->
 		<div id='password-result-div' style='display:none;'>
 		Password result: <p id='password'></p>
 		</div>
@@ -43,6 +46,7 @@
 	<!-- external script dependencies -->
 	<script src="https://code.jquery.com/jquery-2.2.3.min.js" integrity="sha256-a23g1Nt4dtEYOj7bR+vTu7+T8VP13humZFBJNIYoEJo=" crossorigin="anonymous"></script>
 
+	<!-- user side implementation -->
 	<script type='text/javascript'>
 	// selector caching
 	var $canvas = $('#canvas');
@@ -58,13 +62,13 @@
 		// get initial image
 		$('#login').on('submit', function(e){
 			e.preventDefault();
-			$canvas.hide();
+			$canvas.hide(); // hide images
 			username = $('input[name="username"]', this)[0].value;
 			numImages = 0;
 			$numImages.html(numImages);
 			var postData = [username];
 			postData = JSON.stringify(postData);
-
+			// request initial image from server
 			var request = $.ajax({
 				url: '/changeImage.php',
 				type: 'post',
@@ -103,6 +107,7 @@
 		clickmap.id = 'clickmap';
 		var errorMargin = 50;
 
+		// add grid to DOM (to capture click events)
 		for(var y=0; y < $canvas.height(); y += errorMargin){
 			for(var x=0; x < $canvas.width(); x += errorMargin){
 				// area: each cell in the grid
@@ -144,7 +149,7 @@
 	function changeImage(gridX, gridY){
 		var postData = [dataChain, $img[0].src, [gridX, gridY]];
 		postData = JSON.stringify(postData);
-		// post to server
+		// request next image from server
 		$.ajax({
 			type: 'POST',
 			url: "/changeImage.php",
@@ -177,11 +182,13 @@
 		});
 	}
 
+	// authenticate user (send final click point to server)
 	function checkLogin(gridX, gridY){
 		var username = $('#login input[name="username"]')[0].value;
 		var postData = [dataChain, $img[0].src, [gridX, gridY], username];
 		postData = JSON.stringify(postData);
-		// post to server
+		// request authentication from server (for this implementation,
+		// the server sends back the final password instead)
 		$.ajax({
 			type: 'POST',
 			url: "/changeImage.php",
@@ -192,8 +199,10 @@
 			processData: false,
 			success: function(responseData, textStatus, jqXHR) {
 				responseData = JSON.parse(responseData);
+				// display final password
 				$password.html(responseData);
 				$passwordContainer.show();
+				// reset and hide images
 				numImages = 0;
 				$numImagesContainer.hide();
 				$canvas.hide();
